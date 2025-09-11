@@ -9,6 +9,8 @@ import com.devamos.restaurant.repositories.RestaurantRepository;
 import com.devamos.restaurant.services.GeoLocationService;
 import com.devamos.restaurant.services.RestaurantService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.stereotype.Service;
 
@@ -46,5 +48,32 @@ public class RestaurantServiceImpl implements RestaurantService {
                 .build();
 
         return restaurantRepository.save(restaurant);
+    }
+
+    @Override
+    public Page<Restaurant> searchRestaurants(
+            String query, Float minRating, Float latitude, Float longitude, Float radius, Pageable pageable
+    ) {
+        if (null != minRating && (null == query || query.isEmpty())) {
+            System.out.println("ONE: just filtering my min rating");
+            return restaurantRepository.findByAverageRatingGreaterThanEqual(minRating, pageable);
+        }
+
+
+        // Make minRating zero if no minRating.
+        Float searchMinRating = null == minRating ? 0f : minRating;
+
+        // Check to ensure no empty query and white space query
+        if (null != query && !query.trim().isEmpty()) {
+            System.out.println("TWO:there's a text, search query");
+            return restaurantRepository.findByQueryAndMinRating(query, searchMinRating, pageable);
+        }
+
+        if (null != latitude && null != longitude && null != radius) {
+            System.out.println("THREE: there's a location search");
+            return restaurantRepository.findByLocationNear(latitude, longitude, radius, pageable);
+        }
+
+        return restaurantRepository.findAll(pageable);
     }
 }
