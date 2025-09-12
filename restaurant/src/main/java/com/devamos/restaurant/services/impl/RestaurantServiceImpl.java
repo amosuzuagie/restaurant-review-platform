@@ -5,6 +5,7 @@ import com.devamos.restaurant.domain.RestaurantCreateUpdateRequest;
 import com.devamos.restaurant.domain.entities.Address;
 import com.devamos.restaurant.domain.entities.Photo;
 import com.devamos.restaurant.domain.entities.Restaurant;
+import com.devamos.restaurant.exceptions.RestaurantNotFoundException;
 import com.devamos.restaurant.repositories.RestaurantRepository;
 import com.devamos.restaurant.services.GeoLocationService;
 import com.devamos.restaurant.services.RestaurantService;
@@ -81,5 +82,32 @@ public class RestaurantServiceImpl implements RestaurantService {
     @Override
     public Optional<Restaurant> getRestaurant(String id) {
         return restaurantRepository.findById(id);
+    }
+
+    @Override
+    public Restaurant updateRestaurant(String id, RestaurantCreateUpdateRequest request) {
+        Restaurant restaurant = getRestaurant(id)
+                .orElseThrow(() -> new RestaurantNotFoundException("Restaurant with ID does not exist: " + id));
+
+        GeoLocation newGeoLocation = geoLocationService.geolocation(request.getAddress());
+
+        GeoPoint newGeoPoint = new GeoPoint(newGeoLocation.getLatitude(), newGeoLocation.getLongitude());
+
+        List<String> photoIds = request.getPhotoIds();
+        List<Photo> photos = photoIds.stream().map(url ->
+                Photo.builder()
+                        .url(url)
+                        .uploadDate(LocalDateTime.now())
+                        .build()).toList();
+
+        restaurant.setName(request.getName());
+        restaurant.setCuisineType(restaurant.getCuisineType());
+        restaurant.setContactInformation(request.getContactInformation());
+        restaurant.setAddress(request.getAddress());
+        restaurant.setGeoLocation(newGeoPoint);
+        restaurant.setOperatingHours(request.getOperatingHours());
+        restaurant.setPhotos(photos);
+
+        return restaurantRepository.save(restaurant);
     }
 }
