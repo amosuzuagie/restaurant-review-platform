@@ -2,6 +2,7 @@ package com.mstra.restaurant.controllers;
 
 import com.mstra.restaurant.domain.dtos.ErrorDto;
 import com.mstra.restaurant.exceptins.BaseException;
+import com.mstra.restaurant.exceptins.RestaurantNotFoundException;
 import com.mstra.restaurant.exceptins.StorageException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -71,5 +72,16 @@ public class ErrorController {
                 .build();
 
         return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(RestaurantNotFoundException.class)
+    public ResponseEntity<ErrorDto> handleRestaurantNotFoundException(RestaurantNotFoundException ex) {
+        log.error("Caught RestaurantNotFoundException", ex);
+        ErrorDto errorDto = ErrorDto.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .message("The specified restaurant wasn't found.")
+                .build();
+
+        return new ResponseEntity<>(errorDto, HttpStatus.NOT_FOUND);
     }
 }
