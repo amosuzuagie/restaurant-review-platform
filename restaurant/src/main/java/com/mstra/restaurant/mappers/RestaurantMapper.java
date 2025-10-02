@@ -19,6 +19,7 @@ import java.util.List;
 public interface RestaurantMapper {
     RestaurantCreateUpdateRequest toRestaurantCreateUpdateRequest(RestaurantCreateUpdateRequestDto dto);
 
+    @Mapping(source = "reviews", target = "totalReviews", qualifiedByName = "populateReviews")
     RestaurantDto toRestaurantDto(Restaurant restaurant);
 
     @Mapping(target = "latitude", expression = "java(geoPoint.getLat())")
