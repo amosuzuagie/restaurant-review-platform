@@ -10,9 +10,15 @@ import com.mstra.restaurant.exceptins.ReviewNotAllowedException;
 import com.mstra.restaurant.repositories.RestaurantRepository;
 import com.mstra.restaurant.services.ReviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,6 +69,40 @@ public class ReviewServiceImpl implements ReviewService {
                 .filter(r-> r.getId().equals(reviewId))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Error retrieving created review."));
+    }
+
+    @Override
+    public Page<Review> listReviews(String restaurantId, Pageable pageable) {
+        Restaurant restaurant = getRestaurant(restaurantId);
+        List<Review> reviews = restaurant.getReviews();
+
+        Sort sort = pageable.getSort();
+
+        if (sort.isSorted()) {
+            Sort.Order order = sort.iterator().next();                   //Extract user sort information
+            String property = order.getProperty();                       //Property that user want to sort on
+            boolean isAscending = order.getDirection().isAscending();    //Check if sort is ascending or descending order
+
+            Comparator<Review> comparator = switch (property) {
+                case "datePosted" -> Comparator.comparing(Review::getDatePosted);
+                case "rating" -> Comparator.comparing(Review::getRating);
+                default -> Comparator.comparing(Review::getDatePosted);
+            };
+
+            reviews.sort(isAscending ? comparator : comparator.reversed());
+        } else {
+            reviews.sort(Comparator.comparing(Review::getDatePosted).reversed());
+        }
+
+        int start = (int) pageable.getOffset();
+
+        if (start >= reviews.size()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, reviews.size());
+        }
+
+        int end = Math.min(start + pageable.getPageSize(), reviews.size());
+
+        return new PageImpl<>(reviews.subList(start, end), pageable, reviews.size());
     }
 
     private Restaurant getRestaurant(String restaurantId) {
