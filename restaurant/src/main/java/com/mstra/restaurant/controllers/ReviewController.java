@@ -55,6 +55,14 @@ public class ReviewController {
                 .map(reviewMapper::toReviewDto);
     }
 
+    @GetMapping("/{reviewId}")
+    public ResponseEntity<ReviewDto> getReview(@PathVariable String restaurantId, @PathVariable String reviewId) {
+        return reviewService.getReview(restaurantId, reviewId)
+                .map(reviewMapper::toReviewDto)
+                .map(ResponseEntity::ok)
+                .orElseGet(()->ResponseEntity.notFound().build());
+    }
+
     private User extractUser(Jwt jwt) {
         return User.builder()
                 .id(jwt.getSubject())
